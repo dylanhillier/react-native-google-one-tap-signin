@@ -96,21 +96,22 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         reactContext.addActivityEventListener(new RNGoogleOneTapSignInActivityEventListener());
     }
 
-  @Override
-  public Map<String, Object> getConstants() {
-    final Map<String, Object> constants = new HashMap<>();
-    constants.put("BUTTON_SIZE_ICON", SignInButton.SIZE_ICON_ONLY);
-    constants.put("BUTTON_SIZE_STANDARD", SignInButton.SIZE_STANDARD);
-    constants.put("BUTTON_SIZE_WIDE", SignInButton.SIZE_WIDE);
-    constants.put("BUTTON_COLOR_AUTO", SignInButton.COLOR_AUTO);
-    constants.put("BUTTON_COLOR_LIGHT", SignInButton.COLOR_LIGHT);
-    constants.put("BUTTON_COLOR_DARK", SignInButton.COLOR_DARK);
-    constants.put("SIGN_IN_CANCELLED", String.valueOf(GoogleSignInStatusCodes.SIGN_IN_CANCELLED));
-    constants.put("SIGN_IN_REQUIRED", String.valueOf(CommonStatusCodes.SIGN_IN_REQUIRED));
-    constants.put("IN_PROGRESS", ASYNC_OP_IN_PROGRESS);
-    constants.put(PLAY_SERVICES_NOT_AVAILABLE, PLAY_SERVICES_NOT_AVAILABLE);
-    return constants;
-  }
+    @Override
+    public Map<String, Object> getConstants() {
+        final Map<String, Object> constants = new HashMap<>();
+        constants.put("BUTTON_SIZE_ICON", SignInButton.SIZE_ICON_ONLY);
+        constants.put("BUTTON_SIZE_STANDARD", SignInButton.SIZE_STANDARD);
+        constants.put("BUTTON_SIZE_WIDE", SignInButton.SIZE_WIDE);
+        constants.put("BUTTON_COLOR_AUTO", SignInButton.COLOR_AUTO);
+        constants.put("BUTTON_COLOR_LIGHT", SignInButton.COLOR_LIGHT);
+        constants.put("BUTTON_COLOR_DARK", SignInButton.COLOR_DARK);
+        constants.put("SIGN_IN_CANCELLED",
+                String.valueOf(GoogleSignInStatusCodes.SIGN_IN_CANCELLED));
+        constants.put("SIGN_IN_REQUIRED", String.valueOf(CommonStatusCodes.SIGN_IN_REQUIRED));
+        constants.put("IN_PROGRESS", ASYNC_OP_IN_PROGRESS);
+        constants.put(PLAY_SERVICES_NOT_AVAILABLE, PLAY_SERVICES_NOT_AVAILABLE);
+        return constants;
+    }
 
     @ReactMethod
     public void playServicesAvailable(boolean showPlayServicesUpdateDialog, Promise promise) {
@@ -126,7 +127,8 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         int status = googleApiAvailability.isGooglePlayServicesAvailable(activity);
 
         if (status != ConnectionResult.SUCCESS) {
-            if (showPlayServicesUpdateDialog && googleApiAvailability.isUserResolvableError(status)) {
+            if (showPlayServicesUpdateDialog
+                    && googleApiAvailability.isUserResolvableError(status)) {
                 int requestCode = 2404;
                 googleApiAvailability.getErrorDialog(activity, status, requestCode).show();
             }
@@ -137,97 +139,35 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void configure(
-            final ReadableMap config,
-            final Promise promise
-    ) {
+    public void configure(final ReadableMap config, final Promise promise) {
         this.webClientId = config.hasKey("webClientId") ? config.getString("webClientId") : null;
 
         promise.resolve(null);
     }
 
     private void handleSignInTaskResult(@NonNull Intent intent) {
-      try {
-        SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(intent);
+        try {
+            SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(intent);
 
-        WritableMap userParams = getUserProperties(credential);
-        promiseWrapper.resolve(userParams);
+            WritableMap userParams = getUserProperties(credential);
+            promiseWrapper.resolve(userParams);
 
-      } catch (ApiException e) {
-        int code = e.getStatusCode();
-        switch (code) {
-          case CommonStatusCodes.CANCELED:
-          default:
-            String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
-            promiseWrapper.reject(String.valueOf(code), errorDescription);
+        } catch (ApiException e) {
+            int code = e.getStatusCode();
+            switch (code) {
+                case CommonStatusCodes.CANCELED:
+                default:
+                    String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
+                    promiseWrapper.reject(String.valueOf(code), errorDescription);
+            }
         }
-      }
     }
-
-  @ReactMethod
-  public void signInSilently(final Promise promise) {
-    if (oneTapClient == null) {
-      rejectWithNullClientError(promise);
-      return;
-    }
-
-    final Activity activity = getCurrentActivity();
-
-    if (activity == null) {
-      promise.reject(MODULE_NAME, "activity is null");
-      return;
-    }
-
-    signInRequest = BeginSignInRequest.builder()
-      .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
-        .setSupported(true)
-        .build())
-      .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-        .setSupported(true)
-        // Your server's client ID, not your Android client ID.
-        .setServerClientId(webClientId)
-        // Only show accounts previously used to sign in.
-        .setFilterByAuthorizedAccounts(true)
-        .build())
-      // Automatically sign in when exactly one credential is retrieved.
-      .setAutoSelectEnabled(true)
-      .build();
-
-    promiseWrapper.setPromiseWithInProgressCheck(promise, "signIn");
-    UiThreadUtil.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        oneTapClient.beginSignIn(signInRequest)
-          .addOnSuccessListener(activity, new OnSuccessListener<BeginSignInResult>() {
-            @Override
-            public void onSuccess(BeginSignInResult result) {
-              try {
-                activity.startIntentSenderForResult(
-                  result.getPendingIntent().getIntentSender(), REQ_ONE_TAP,
-                  null, 0, 0, 0);
-              } catch (IntentSender.SendIntentException e) {
-                promise.reject(MODULE_NAME, e.getLocalizedMessage());
-              }
-            }
-          })
-          .addOnFailureListener(activity, new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-              // No saved credentials found. Launch the One Tap sign-up flow, or
-              // do nothing and continue presenting the signed-out UI.
-              promise.reject(MODULE_NAME, e.getLocalizedMessage());
-            }
-          });
-      }
-    });
-  }
 
     @ReactMethod
-    public void signIn(final Promise promise) {
-
+    public void signInSilently(final Promise promise) {
         if (oneTapClient == null) {
-          rejectWithNullClientError(promise);
-          return;
+            rejectWithNullClientError(promise);
+            return;
         }
 
         final Activity activity = getCurrentActivity();
@@ -238,123 +178,172 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         }
 
         signInRequest = BeginSignInRequest.builder()
-          .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-            .setSupported(true)
-            // Your server's client ID, not your Android client ID.
-            .setServerClientId(webClientId)
-            // Show all accounts on the device.
-            .setFilterByAuthorizedAccounts(false)
-            .build())
-          .build();
+                .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
+                        .setSupported(true).build())
+                .setGoogleIdTokenRequestOptions(
+                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(true)
+                                // Your server's client ID, not your Android client ID.
+                                .setServerClientId(webClientId)
+                                // Only show accounts previously used to sign in.
+                                .setFilterByAuthorizedAccounts(true).build())
+                // Automatically sign in when exactly one credential is retrieved.
+                .setAutoSelectEnabled(true).build();
 
         promiseWrapper.setPromiseWithInProgressCheck(promise, "signIn");
-          UiThreadUtil.runOnUiThread(new Runnable() {
-              @Override
-              public void run() {
+        UiThreadUtil.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
                 oneTapClient.beginSignIn(signInRequest)
-                  .addOnSuccessListener(activity, new OnSuccessListener<BeginSignInResult>() {
-                    @Override
-                    public void onSuccess(BeginSignInResult result) {
-                      try {
-                        activity.startIntentSenderForResult(
-                          result.getPendingIntent().getIntentSender(), REQ_ONE_TAP,
-                          null, 0, 0, 0);
-                      } catch (IntentSender.SendIntentException e) {
-                        promise.reject(MODULE_NAME, e.getLocalizedMessage());
-                      }
-                    }
-                  })
-                  .addOnFailureListener(activity, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                      // No saved credentials found. Launch the One Tap sign-up flow, or
-                      // do nothing and continue presenting the signed-out UI.
-                      promise.reject(MODULE_NAME, e.getLocalizedMessage());
-                    }
-                  });
-              }
-          });
+                        .addOnSuccessListener(activity, new OnSuccessListener<BeginSignInResult>() {
+                            @Override
+                            public void onSuccess(BeginSignInResult result) {
+                                try {
+                                    activity.startIntentSenderForResult(
+                                            result.getPendingIntent().getIntentSender(),
+                                            REQ_ONE_TAP, null, 0, 0, 0);
+                                } catch (IntentSender.SendIntentException e) {
+                                    promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                                }
+                            }
+                        }).addOnFailureListener(activity, new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // No saved credentials found. Launch the One Tap sign-up flow, or
+                                // do nothing and continue presenting the signed-out UI.
+                                promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                            }
+                        });
+            }
+        });
     }
 
     @ReactMethod
-    public void savePassword(final String userId, final String password, final Promise promise) {
+    public void signIn(final Promise promise) {
 
-        if(userId.isEmpty() || password.isEmpty()) {
-          promise.reject(MODULE_NAME, "activity is null");
-          return;
+        if (oneTapClient == null) {
+            rejectWithNullClientError(promise);
+            return;
         }
 
         final Activity activity = getCurrentActivity();
 
         if (activity == null) {
-          promise.reject(MODULE_NAME, "activity is null");
-          return;
+            promise.reject(MODULE_NAME, "activity is null");
+            return;
+        }
+
+        signInRequest = BeginSignInRequest.builder()
+                .setGoogleIdTokenRequestOptions(
+                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(true)
+                                // Your server's client ID, not your Android client ID.
+                                .setServerClientId(webClientId)
+                                // Show all accounts on the device.
+                                .setFilterByAuthorizedAccounts(false).build())
+                .build();
+
+        promiseWrapper.setPromiseWithInProgressCheck(promise, "signIn");
+        UiThreadUtil.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                oneTapClient.beginSignIn(signInRequest)
+                        .addOnSuccessListener(activity, new OnSuccessListener<BeginSignInResult>() {
+                            @Override
+                            public void onSuccess(BeginSignInResult result) {
+                                try {
+                                    activity.startIntentSenderForResult(
+                                            result.getPendingIntent().getIntentSender(),
+                                            REQ_ONE_TAP, null, 0, 0, 0);
+                                } catch (IntentSender.SendIntentException e) {
+                                    promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                                }
+                            }
+                        }).addOnFailureListener(activity, new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                // No saved credentials found. Launch the One Tap sign-up flow, or
+                                // do nothing and continue presenting the signed-out UI.
+                                promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                            }
+                        });
+            }
+        });
+    }
+
+    @ReactMethod
+    public void savePassword(final String userId, final String password, final Promise promise) {
+
+        if (userId.isEmpty() || password.isEmpty()) {
+            promise.reject(MODULE_NAME, "activity is null");
+            return;
+        }
+
+        final Activity activity = getCurrentActivity();
+
+        if (activity == null) {
+            promise.reject(MODULE_NAME, "activity is null");
+            return;
         }
 
         SignInPassword signInPassword = new SignInPassword(userId, password);
-        SavePasswordRequest savePasswordRequest = SavePasswordRequest.builder().setSignInPassword(signInPassword).build();
+        SavePasswordRequest savePasswordRequest =
+                SavePasswordRequest.builder().setSignInPassword(signInPassword).build();
 
-        Identity.getCredentialSavingClient(activity)
-        .savePassword(savePasswordRequest)
-        .addOnSuccessListener(
-          new OnSuccessListener<SavePasswordResult>() {
-            @Override
-            public void onSuccess(SavePasswordResult result) {
-              try {
-                activity.startIntentSenderForResult(
-                  result.getPendingIntent().getIntentSender(),
-                  REQUEST_CODE_GIS_SAVE_PASSWORD,
-                  /* fillInIntent= */ null,
-                  /* flagsMask= */ 0,
-                  /* flagsValue= */ 0,
-                  /* extraFlags= */ 0,
-                  /* options= */ null);
-              } catch (IntentSender.SendIntentException e) {
-                promise.reject(MODULE_NAME, e.getLocalizedMessage());
-              }
-            }
-          });
+        Identity.getCredentialSavingClient(activity).savePassword(savePasswordRequest)
+                .addOnSuccessListener(new OnSuccessListener<SavePasswordResult>() {
+                    @Override
+                    public void onSuccess(SavePasswordResult result) {
+                        try {
+                            activity.startIntentSenderForResult(
+                                    result.getPendingIntent().getIntentSender(),
+                                    REQUEST_CODE_GIS_SAVE_PASSWORD, /* fillInIntent= */ null,
+                                    /* flagsMask= */ 0, /* flagsValue= */ 0, /* extraFlags= */ 0,
+                                    /* options= */ null);
+                        } catch (IntentSender.SendIntentException e) {
+                            promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                        }
+                    }
+                });
     }
 
-  @ReactMethod
-  public void deletePassword(final String userId, final String password, final Promise promise) {
+    @ReactMethod
+    public void deletePassword(final String userId, final String password, final Promise promise) {
 
-    final Activity activity = getCurrentActivity();
+        final Activity activity = getCurrentActivity();
 
-    if (activity == null) {
-      promise.reject(MODULE_NAME, "activity is null");
-      return;
-    }
-
-    CredentialRequest  mCredentialRequest = new CredentialRequest.Builder()
-      .setPasswordLoginSupported(true)
-      .build();
-
-    Credential credential = new Credential.Builder(userId)
-      .setPassword(password)  // Important: only store passwords in this field.
-      // Android autofill uses this value to complete
-      // sign-in forms, so repurposing this field will
-      // likely cause errors.
-      .build();
-
-    mCredentialsClient.delete(credential).addOnCompleteListener(
-      new OnCompleteListener<Void>() {
-        @Override
-        public void onComplete(@NonNull Task<Void> task) {
-          promise.resolve(task.isSuccessful());
+        if (activity == null) {
+            promise.reject(MODULE_NAME, "activity is null");
+            return;
         }
-      });
-  }
+
+        CredentialRequest mCredentialRequest =
+                new CredentialRequest.Builder().setPasswordLoginSupported(true).build();
+
+        Credential credential = new Credential.Builder(userId).setPassword(password) // Important:
+                                                                                     // only store
+                                                                                     // passwords in
+                                                                                     // this field.
+                // Android autofill uses this value to complete
+                // sign-in forms, so repurposing this field will
+                // likely cause errors.
+                .build();
+
+        mCredentialsClient.delete(credential).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                promise.resolve(task.isSuccessful());
+            }
+        });
+    }
 
     private class RNGoogleOneTapSignInActivityEventListener extends BaseActivityEventListener {
         @Override
-        public void onActivityResult(Activity activity, final int requestCode, final int resultCode, final Intent intent) {
-            if(requestCode == REQ_ONE_TAP){
-              handleSignInTaskResult(intent);
+        public void onActivityResult(Activity activity, final int requestCode, final int resultCode,
+                final Intent intent) {
+            if (requestCode == REQ_ONE_TAP) {
+                handleSignInTaskResult(intent);
+            } else if (requestCode == REQUEST_CODE_GIS_SAVE_PASSWORD) {
+                handleSavePasswordTaskResult(resultCode);
             }
-            else if (requestCode == REQUEST_CODE_GIS_SAVE_PASSWORD) {
-              handleSavePasswordTaskResult(resultCode);
-          }
         }
     }
 
@@ -365,33 +354,32 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
             return;
         }
 
-        oneTapClient.signOut()
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        handleSignOutOrRevokeAccessTask(task, promise);
-                    }
-                });
+        oneTapClient.signOut().addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                handleSignOutOrRevokeAccessTask(task, promise);
+            }
+        });
     }
 
     private void handleSavePasswordTaskResult(int resultCode) {
-      if (resultCode == Activity.RESULT_OK) {
-        /* password was saved */
-        promiseWrapper.resolve(true);
-      } else if (resultCode == Activity.RESULT_CANCELED) {
-        /* password saving was cancelled */
-        promiseWrapper.resolve(false);
-      }
-  }
+        if (resultCode == Activity.RESULT_OK) {
+            /* password was saved */
+            promiseWrapper.resolve(true);
+        } else if (resultCode == Activity.RESULT_CANCELED) {
+            /* password saving was cancelled */
+            promiseWrapper.resolve(false);
+        }
+    }
 
     private void handleSignOutOrRevokeAccessTask(@NonNull Task<Void> task, final Promise promise) {
-      if (task.isSuccessful()) {
-        promise.resolve(null);
-      } else {
-        int code = getExceptionCode(task);
-        String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
-        promise.reject(String.valueOf(code), errorDescription);
-      }
+        if (task.isSuccessful()) {
+            promise.resolve(null);
+        } else {
+            int code = getExceptionCode(task);
+            String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
+            promise.reject(String.valueOf(code), errorDescription);
+        }
     }
 
     private void rejectWithNullClientError(Promise promise) {

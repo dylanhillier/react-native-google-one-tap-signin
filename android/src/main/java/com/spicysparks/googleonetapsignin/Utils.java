@@ -43,33 +43,28 @@ public class Utils {
         WritableMap params = Arguments.createMap();
         params.putMap("user", user);
         params.putString("idToken", signInCredential.getGoogleIdToken());
-        //params.putString("serverAuthCode", signInCredential.);
+        // params.putString("serverAuthCode", signInCredential.);
 
-        /*WritableArray scopes = Arguments.createArray();
-        for (Scope scope : signInCredential.getGrantedScopes()) {
-            String scopeString = scope.toString();
-            if (scopeString.startsWith("http")) {
-                scopes.pushString(scopeString);
-            }
-        }
-        params.putArray("scopes", scopes);*/
+        /*
+         * WritableArray scopes = Arguments.createArray(); for (Scope scope :
+         * signInCredential.getGrantedScopes()) { String scopeString = scope.toString(); if
+         * (scopeString.startsWith("http")) { scopes.pushString(scopeString); } }
+         * params.putArray("scopes", scopes);
+         */
         return params;
     }
 
-    static GoogleSignInOptions getSignInOptions(
-            final Scope[] scopes,
-            final String webClientId,
-            final boolean offlineAccess,
-            final boolean forceCodeForRefreshToken,
-            final String accountName,
-            final String hostedDomain
-    ) {
-        GoogleSignInOptions.Builder googleSignInOptionsBuilder = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestScopes(new Scope(Scopes.EMAIL), scopes);
+    static GoogleSignInOptions getSignInOptions(final Scope[] scopes, final String webClientId,
+            final boolean offlineAccess, final boolean forceCodeForRefreshToken,
+            final String accountName, final String hostedDomain) {
+        GoogleSignInOptions.Builder googleSignInOptionsBuilder =
+                new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestScopes(new Scope(Scopes.EMAIL), scopes);
         if (webClientId != null && !webClientId.isEmpty()) {
             googleSignInOptionsBuilder.requestIdToken(webClientId);
             if (offlineAccess) {
-                googleSignInOptionsBuilder.requestServerAuthCode(webClientId, forceCodeForRefreshToken);
+                googleSignInOptionsBuilder.requestServerAuthCode(webClientId,
+                        forceCodeForRefreshToken);
             }
         }
         if (accountName != null && !accountName.isEmpty()) {

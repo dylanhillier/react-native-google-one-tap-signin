@@ -53,7 +53,7 @@ public class PromiseWrapper {
         rejecter.reject(code, message);
     }
 
-    public String getNameOfCallInProgress(){
+    public String getNameOfCallInProgress() {
         return nameOfCallInProgress;
     }
 
@@ -62,8 +62,12 @@ public class PromiseWrapper {
         nameOfCallInProgress = null;
     }
 
-    private void rejectPreviousPromiseBecauseNewOneIsInProgress(Promise promise, String requestedOperation) {
-        promise.reject(ASYNC_OP_IN_PROGRESS, "Warning: previous promise did not settle and was overwritten. " +
-          "You've called \"" + requestedOperation + "\" while \"" + getNameOfCallInProgress() + "\" was already in progress and has not completed yet.");
+    private void rejectPreviousPromiseBecauseNewOneIsInProgress(Promise promise,
+            String requestedOperation) {
+        promise.reject(ASYNC_OP_IN_PROGRESS,
+                "Warning: previous promise did not settle and was overwritten. "
+                        + "You've called \"" + requestedOperation + "\" while \""
+                        + getNameOfCallInProgress()
+                        + "\" was already in progress and has not completed yet.");
     }
 }

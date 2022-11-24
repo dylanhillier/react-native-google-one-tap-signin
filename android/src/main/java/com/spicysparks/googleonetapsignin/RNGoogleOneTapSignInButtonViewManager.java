@@ -23,7 +23,8 @@ public class RNGoogleOneTapSignInButtonViewManager extends SimpleViewManager<Sig
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("RNGoogleOneTapSignInButtonClicked", null);
+                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("RNGoogleOneTapSignInButtonClicked", null);
             }
         });
         return button;

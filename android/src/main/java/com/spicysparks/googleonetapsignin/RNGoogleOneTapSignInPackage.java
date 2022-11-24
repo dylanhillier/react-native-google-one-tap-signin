@@ -19,10 +19,8 @@ public class RNGoogleOneTapSignInPackage implements ReactPackage {
         return modules;
     }
 
-  @Override
+    @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Arrays.<ViewManager>asList(
-                new RNGoogleOneTapSignInButtonViewManager()
-        );
+        return Arrays.<ViewManager>asList(new RNGoogleOneTapSignInButtonViewManager());
     }
 }
