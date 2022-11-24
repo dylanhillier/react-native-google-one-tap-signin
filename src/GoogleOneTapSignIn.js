@@ -41,7 +41,7 @@ class GoogleOneTapSignIn {
     if (IS_IOS) {
       return true;
     }
-    
+
     if (options.offlineAccess && !options.webClientId) {
       throw new Error('RNGoogleOneTapSignIn: offline use requires server web ClientID');
     }
@@ -88,9 +88,11 @@ class GoogleOneTapSignIn {
 
 export const GoogleOneTapSignInSingleton = new GoogleOneTapSignIn();
 
-export const statusCodes = IS_IOS ? {} : {
-  SIGN_IN_CANCELLED: RNGoogleOneTapSignIn.SIGN_IN_CANCELLED,
-  IN_PROGRESS: RNGoogleOneTapSignIn.IN_PROGRESS,
-  PLAY_SERVICES_NOT_AVAILABLE: RNGoogleOneTapSignIn.PLAY_SERVICES_NOT_AVAILABLE,
-  SIGN_IN_REQUIRED: RNGoogleOneTapSignIn.SIGN_IN_REQUIRED,
-};
+export const statusCodes = IS_IOS
+  ? {}
+  : {
+      SIGN_IN_CANCELLED: RNGoogleOneTapSignIn.SIGN_IN_CANCELLED,
+      IN_PROGRESS: RNGoogleOneTapSignIn.IN_PROGRESS,
+      PLAY_SERVICES_NOT_AVAILABLE: RNGoogleOneTapSignIn.PLAY_SERVICES_NOT_AVAILABLE,
+      SIGN_IN_REQUIRED: RNGoogleOneTapSignIn.SIGN_IN_REQUIRED,
+    };

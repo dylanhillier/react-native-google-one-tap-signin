@@ -30,9 +30,12 @@ export class GoogleOneTapSignInButton extends PureComponent {
 
   componentDidMount() {
     if (Platform.OS === 'android') {
-      this._clickListener = DeviceEventEmitter.addListener('RNGoogleOneTapSignInButtonClicked', () => {
-        this.props.onPress && this.props.onPress();
-      });
+      this._clickListener = DeviceEventEmitter.addListener(
+        'RNGoogleOneTapSignInButtonClicked',
+        () => {
+          this.props.onPress && this.props.onPress();
+        }
+      );
     }
   }
 
@@ -67,14 +70,18 @@ const styles = StyleSheet.create({
   wideSize: { width: 312, height: 48 },
 });
 
-GoogleOneTapSignInButton.Size = IS_IOS ? {} : {
-  Icon: RNGoogleOneTapSignIn.BUTTON_SIZE_ICON,
-  Standard: RNGoogleOneTapSignIn.BUTTON_SIZE_STANDARD,
-  Wide: RNGoogleOneTapSignIn.BUTTON_SIZE_WIDE,
-};
+GoogleOneTapSignInButton.Size = IS_IOS
+  ? {}
+  : {
+      Icon: RNGoogleOneTapSignIn.BUTTON_SIZE_ICON,
+      Standard: RNGoogleOneTapSignIn.BUTTON_SIZE_STANDARD,
+      Wide: RNGoogleOneTapSignIn.BUTTON_SIZE_WIDE,
+    };
 
-GoogleOneTapSignInButton.Color = IS_IOS ? {} : {
-  Auto: RNGoogleOneTapSignIn.BUTTON_COLOR_AUTO,
-  Light: RNGoogleOneTapSignIn.BUTTON_COLOR_LIGHT,
-  Dark: RNGoogleOneTapSignIn.BUTTON_COLOR_DARK,
-};
+GoogleOneTapSignInButton.Color = IS_IOS
+  ? {}
+  : {
+      Auto: RNGoogleOneTapSignIn.BUTTON_COLOR_AUTO,
+      Light: RNGoogleOneTapSignIn.BUTTON_COLOR_LIGHT,
+      Dark: RNGoogleOneTapSignIn.BUTTON_COLOR_DARK,
+    };
