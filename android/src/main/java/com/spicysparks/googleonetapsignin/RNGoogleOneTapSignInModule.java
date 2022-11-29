@@ -16,7 +16,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.UiThreadUtil;
-import com.facebook.react.bridge.WritableMap;;
+import com.facebook.react.bridge.WritableMap;
 import com.google.android.gms.auth.api.credentials.Credential;
 import com.google.android.gms.auth.api.credentials.CredentialRequest;
 import com.google.android.gms.auth.api.credentials.CredentialRequestResponse;
@@ -61,7 +61,9 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
 
-    private CredentialsClient mCredentialsClient;
+    private CredentialsClient credentialsClient;
+
+    private boolean showOneTapDialog = true;
 
     private static final int REQ_ONE_TAP = 2;
     private static final int REQUEST_CODE_GIS_SAVE_PASSWORD = 3; /* unique request id */
@@ -76,10 +78,6 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
     private PromiseWrapper promiseWrapper;
 
-    public PromiseWrapper getPromiseWrapper() {
-        return promiseWrapper;
-    }
-
     @Override
     public String getName() {
         return MODULE_NAME;
@@ -90,7 +88,7 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
         oneTapClient = Identity.getSignInClient(reactContext);
 
-        mCredentialsClient = Credentials.getClient(reactContext);
+        credentialsClient = Credentials.getClient(reactContext);
 
         promiseWrapper = new PromiseWrapper();
         reactContext.addActivityEventListener(new RNGoogleOneTapSignInActivityEventListener());
@@ -143,24 +141,6 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         this.webClientId = config.hasKey("webClientId") ? config.getString("webClientId") : null;
 
         promise.resolve(null);
-    }
-
-    private void handleSignInTaskResult(@NonNull Intent intent) {
-        try {
-            SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(intent);
-
-            WritableMap userParams = getUserProperties(credential);
-            promiseWrapper.resolve(userParams);
-
-        } catch (ApiException e) {
-            int code = e.getStatusCode();
-            switch (code) {
-                case CommonStatusCodes.CANCELED:
-                default:
-                    String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
-                    promiseWrapper.reject(String.valueOf(code), errorDescription);
-            }
-        }
     }
 
     @ReactMethod
@@ -225,6 +205,11 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
             return;
         }
 
+        if (!showOneTapDialog) {
+            promise.reject(MODULE_NAME, "one-tap sign-in disabled until app restart");
+            return;
+        }
+
         final Activity activity = getCurrentActivity();
 
         if (activity == null) {
@@ -233,6 +218,8 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         }
 
         signInRequest = BeginSignInRequest.builder()
+                .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
+                        .setSupported(true).build())
                 .setGoogleIdTokenRequestOptions(
                         BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(true)
                                 // Your server's client ID, not your Android client ID.
@@ -271,9 +258,10 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void savePassword(final String userId, final String password, final Promise promise) {
-
+        Log.d("[savePassword]", "invoked");
         if (userId.isEmpty() || password.isEmpty()) {
-            promise.reject(MODULE_NAME, "activity is null");
+            promise.reject(MODULE_NAME, "both userid and password must have values");
+            Log.d("[savePassword]", "user id and/or password was not set");
             return;
         }
 
@@ -281,6 +269,7 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
         if (activity == null) {
             promise.reject(MODULE_NAME, "activity is null");
+            Log.d("[savePassword]", "activity was null");
             return;
         }
 
@@ -288,11 +277,14 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         SavePasswordRequest savePasswordRequest =
                 SavePasswordRequest.builder().setSignInPassword(signInPassword).build();
 
+        Log.d("[savePassword]", "save password request built");
+        promiseWrapper.setPromiseWithInProgressCheck(promise, "savePassword");
         Identity.getCredentialSavingClient(activity).savePassword(savePasswordRequest)
                 .addOnSuccessListener(new OnSuccessListener<SavePasswordResult>() {
                     @Override
                     public void onSuccess(SavePasswordResult result) {
                         try {
+                            Log.d("[savePassword]", "starting intent for sender");
                             activity.startIntentSenderForResult(
                                     result.getPendingIntent().getIntentSender(),
                                     REQUEST_CODE_GIS_SAVE_PASSWORD, /* fillInIntent= */ null,
@@ -302,7 +294,17 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
                             promise.reject(MODULE_NAME, e.getLocalizedMessage());
                         }
                     }
+                }).addOnFailureListener(activity, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // This can happen if an attempt to save a password is made after the user
+                        // has opted to 'never' save password when prompted.
+                        Log.d("[savePassword]", "failure to set password.. game over.");
+                        promise.reject(MODULE_NAME, e.getLocalizedMessage());
+                    }
                 });
+
+        Log.d("[savePassword]", "exiting");
     }
 
     @ReactMethod
@@ -315,19 +317,12 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
             return;
         }
 
-        CredentialRequest mCredentialRequest =
-                new CredentialRequest.Builder().setPasswordLoginSupported(true).build();
+        // Important: only store passwords in this field. Android autofill uses this value to
+        // complete sign-in forms, so repurposing this field will likely cause errors.
+        Credential credential = new Credential.Builder(userId).setPassword(password).build();
 
-        Credential credential = new Credential.Builder(userId).setPassword(password) // Important:
-                                                                                     // only store
-                                                                                     // passwords in
-                                                                                     // this field.
-                // Android autofill uses this value to complete
-                // sign-in forms, so repurposing this field will
-                // likely cause errors.
-                .build();
-
-        mCredentialsClient.delete(credential).addOnCompleteListener(new OnCompleteListener<Void>() {
+        promiseWrapper.setPromiseWithInProgressCheck(promise, "deletePassword");
+        credentialsClient.delete(credential).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 promise.resolve(task.isSuccessful());
@@ -339,8 +334,10 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         @Override
         public void onActivityResult(Activity activity, final int requestCode, final int resultCode,
                 final Intent intent) {
+            Log.d("[onActivityResult]", "activity=" + activity + " requestcode=" + requestCode
+                    + " resultCode=" + resultCode);
             if (requestCode == REQ_ONE_TAP) {
-                handleSignInTaskResult(intent);
+                handleSignInTaskResult(intent, resultCode);
             } else if (requestCode == REQUEST_CODE_GIS_SAVE_PASSWORD) {
                 handleSavePasswordTaskResult(resultCode);
             }
@@ -360,6 +357,39 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
                 handleSignOutOrRevokeAccessTask(task, promise);
             }
         });
+    }
+
+    private void handleSignInTaskResult(@NonNull Intent intent, int resultCode) {
+        if (resultCode == Activity.RESULT_OK) {
+            try {
+                SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(intent);
+
+                WritableMap userParams = getUserProperties(credential);
+                promiseWrapper.resolve(userParams);
+
+            } catch (ApiException e) {
+                int code = e.getStatusCode();
+                switch (code) {
+                    case CommonStatusCodes.CANCELED:
+                    case CommonStatusCodes.NETWORK_ERROR:
+                    default:
+                        String errorDescription = GoogleSignInStatusCodes.getStatusCodeString(code);
+                        promiseWrapper.reject(String.valueOf(code), errorDescription);
+                }
+            }
+        } else if (resultCode == Activity.RESULT_CANCELED) {
+            /**
+             * User chose not to proceed with google sign-in or password selection. Continuing to
+             * show the One-Tap dialog after the user closes it will result in: `Error: 16: Caller
+             * has been temporarily blocked due to too many canceled sign-in prompts.`. This error
+             * will prevent One-Tap dialog from displaying for 24 hours.
+             * https://developers.google.com/identity/one-tap/android/get-saved-credentials#
+             * disable-one-tap
+             **/
+            // showOneTapDialog = false;
+            Log.d("[handleSignInTaskResult]", "log in was cancelled");
+            promiseWrapper.resolve(false);
+        }
     }
 
     private void handleSavePasswordTaskResult(int resultCode) {
