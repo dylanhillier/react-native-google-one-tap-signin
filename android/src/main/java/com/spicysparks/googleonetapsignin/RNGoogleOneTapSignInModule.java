@@ -386,7 +386,7 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
              * https://developers.google.com/identity/one-tap/android/get-saved-credentials#
              * disable-one-tap
              **/
-            // showOneTapDialog = false;
+            showOneTapDialog = false;
             Log.d("[handleSignInTaskResult]", "log in was cancelled");
             promiseWrapper.resolve(false);
         }
