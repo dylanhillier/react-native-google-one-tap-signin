@@ -6,6 +6,7 @@
 - Promise-based API consistent between Android and iOS
 - Typings for TypeScript and Flow
 - Native signin buttons
+- Choice of both Google Token ID and Username/Password sign-in options.
 
 ## Project setup and initialization
 
@@ -45,6 +46,16 @@ Example to access Google Drive both from the mobile application and from your ba
 
 ```js
 GoogleOneTapSignIn.configure({
+  webClientId: '<FROM DEVELOPER CONSOLE>', // client ID of type WEB for your server (needed to verify user ID and offline access)
+});
+```
+
+Example to enable/disable Sign In using Google Token ID and/or Username/Passwords. This will result in the disabled methods not appearing in the One Tap popup.
+
+```js
+GoogleOneTapSignIn.configure({
+  usePasswordSignIn: true,
+  useTokenSignIn: false,
   webClientId: '<FROM DEVELOPER CONSOLE>', // client ID of type WEB for your server (needed to verify user ID and offline access)
 });
 ```
