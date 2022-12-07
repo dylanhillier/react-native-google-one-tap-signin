@@ -57,6 +57,8 @@ import static com.spicysparks.googleonetapsignin.Utils.getUserProperties;
 public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
     private String webClientId;
+    private boolean useTokenSignIn = true;
+    private boolean usePasswordSignIn = false;
 
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
@@ -136,9 +138,19 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
         }
     }
 
+    /**
+     * Default configuration option values have been added to maintain backward compatibility with
+     * the previous implementation, which only supported Google Token ID requests.
+     * 
+     * These option are: useTokenSignIn = true, usePasswordSignIn = false
+     */
     @ReactMethod
     public void configure(final ReadableMap config, final Promise promise) {
         this.webClientId = config.hasKey("webClientId") ? config.getString("webClientId") : null;
+        this.useTokenSignIn = config.hasKey("useTokenSignIn")
+                && Boolean.parseBoolean(config.getString("useTokenSignIn"));
+        this.usePasswordSignIn = !config.hasKey("usePasswordSignIn")
+                || Boolean.parseBoolean(config.getString("usePasswordSignIn"));
 
         promise.resolve(null);
     }
@@ -159,14 +171,13 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
         signInRequest = BeginSignInRequest.builder()
                 .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
-                        .setSupported(true).build())
-                .setGoogleIdTokenRequestOptions(
-                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(true)
-                                // Your server's client ID, not your Android client ID.
-                                .setServerClientId(webClientId)
-                                // Only show accounts previously used to sign in.
-                                .setFilterByAuthorizedAccounts(true).build())
-                // Automatically sign in when exactly one credential is retrieved.
+                        .setSupported(this.usePasswordSignIn).build())
+                .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions
+                        .builder().setSupported(this.useTokenSignIn)
+                        // Your server's client ID, not your Android client ID.
+                        .setServerClientId(webClientId)
+                        // Only show accounts previously used to sign in.
+                        .setFilterByAuthorizedAccounts(true).build())
                 .setAutoSelectEnabled(true).build();
 
         promiseWrapper.setPromiseWithInProgressCheck(promise, "signIn");
@@ -219,13 +230,13 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
 
         signInRequest = BeginSignInRequest.builder()
                 .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
-                        .setSupported(true).build())
-                .setGoogleIdTokenRequestOptions(
-                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder().setSupported(true)
-                                // Your server's client ID, not your Android client ID.
-                                .setServerClientId(webClientId)
-                                // Show all accounts on the device.
-                                .setFilterByAuthorizedAccounts(false).build())
+                        .setSupported(this.usePasswordSignIn).build())
+                .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions
+                        .builder().setSupported(this.useTokenSignIn)
+                        // Your server's client ID, not your Android client ID.
+                        .setServerClientId(webClientId)
+                        // Show all accounts on the device.
+                        .setFilterByAuthorizedAccounts(false).build())
                 .build();
 
         promiseWrapper.setPromiseWithInProgressCheck(promise, "signIn");

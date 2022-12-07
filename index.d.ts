@@ -90,6 +90,18 @@ export interface ConfigureParams {
    * ANDROID ONLY. An account name that should be prioritized.
    */
   accountName?: string;
+
+  /**
+   * If true, enables Google Token ID based auth during sign in.
+   * (defaults=true)
+   */
+  useTokenSignIn?: boolean;
+
+  /**
+   * If true, enables Username/Password based auth during sign in.
+   * (default=false)
+   */
+  usePasswordSignIn?: boolean;
 }
 
 export interface User {

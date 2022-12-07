@@ -12,6 +12,8 @@ export type ConfigureParams = $ReadOnly<{|
   hostedDomain?: string,
   forceCodeForRefreshToken?: boolean,
   accountName?: string,
+  useTokenSignIn?: boolean,
+  usePasswordSignIn?: boolean,
 |}>;
 
 export type GoogleSigninButtonProps = $ReadOnly<{|
