@@ -147,8 +147,10 @@ public class RNGoogleOneTapSignInModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void configure(final ReadableMap config, final Promise promise) {
         this.webClientId = config.hasKey("webClientId") ? config.getString("webClientId") : null;
-        this.useTokenSignIn = config.hasKey("useTokenSignIn") && config.getBoolean("useTokenSignIn"));
-        this.usePasswordSignIn = !config.hasKey("usePasswordSignIn") || config.getBoolean("usePasswordSignIn"));
+        this.useTokenSignIn =
+                config.hasKey("useTokenSignIn") && config.getBoolean("useTokenSignIn");
+        this.usePasswordSignIn =
+                !config.hasKey("usePasswordSignIn") || config.getBoolean("usePasswordSignIn");
 
         promise.resolve(null);
     }
